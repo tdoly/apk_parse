@@ -1,7 +1,8 @@
 ## 解析APK
 
-   选取[androguard][https://github.com/androguard/androguard]中部分对apk分析的代码进行修改,满足自己使用的需求.
-
+   选取[androguard][androguard-url]中部分对apk分析的代码进行修改,满足自己使用的需求.
+   
+[androguard-url]: https://github.com/androguard/androguard
 
 ```python
     #!/usr/bin/env python
