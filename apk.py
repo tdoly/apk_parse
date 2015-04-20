@@ -16,6 +16,7 @@
 # limitations under the License.
 
 
+import os
 import bytecode
 import androconf
 from dvm_permissions import DVM_PERMISSIONS
@@ -38,6 +39,7 @@ NS_ANDROID_URI = 'http://schemas.android.com/apk/res/android'
 ZIPMODULE = 1
 
 import sys
+import zipfile
 
 if sys.hexversion < 0x2070000:
     try:
@@ -187,13 +189,7 @@ class APK(object):
 
         if zipmodule == 0:
             self.zip = ChilkatZip(self.__raw)
-        elif zipmodule == 2:
-            import zipfile
-
-            self.zip = zipfile.ZipFile(StringIO.StringIO(self.__raw), mode=mode)
         else:
-            import zipfile
-
             self.zip = zipfile.ZipFile(StringIO.StringIO(self.__raw), mode=mode)
 
         for i in self.zip.namelist():
@@ -233,14 +229,6 @@ class APK(object):
         cert = sk3.pop()
         self.cert_text = cert.as_text()
         self.cert_md5 = get_md5(cert.as_der())
-
-    def get_AndroidManifest(self):
-        """
-            Return the Android Manifest XML file
-
-            :rtype: xml object
-        """
-        return self.xml["AndroidManifest.xml"]
 
     def is_valid_APK(self):
         """
@@ -617,8 +605,6 @@ class APK(object):
 
             zout = zipfile.ZipFile(filename, 'w')
         else:
-            import zipfile
-
             zout = zipfile.ZipFile(filename, 'w')
 
         for item in self.zip.infolist():
@@ -717,6 +703,30 @@ class APK(object):
             print "\t", i, filters or ""
 
         print "PROVIDERS: ", self.get_providers()
+
+    def parse_icon(self, icon_path=None):
+        """
+        parse icon.
+        :param icon_path: icon storage path
+        """
+        if not icon_path:
+            icon_path = os.path.dirname(os.path.abspath(__file__))
+
+        pkg_name_path = os.path.join(icon_path, self.package)
+        if not os.path.exists(pkg_name_path):
+            os.mkdir(pkg_name_path)
+
+        aapt_line = "aapt dump badging %s | grep 'application-icon' | awk -F ':' '{print $2}'" % self.get_filename()
+        parse_icon_rt = os.popen(aapt_line).read()
+        icon_paths = [icon.replace("'", '') for icon in parse_icon_rt.split('\n') if icon]
+
+        zfile = zipfile.ZipFile(StringIO.StringIO(self.__raw), mode='r')
+        for icon in icon_paths:
+            icon_name = icon.replace('/', '_')
+            data = zfile.read(icon)
+            with open(os.path.join(pkg_name_path, icon_name), 'w+b') as icon_file:
+                icon_file.write(data)
+        print "APK ICON in: %s" % pkg_name_path
 
 
 def show_Certificate(cert):
